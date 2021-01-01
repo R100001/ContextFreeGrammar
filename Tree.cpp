@@ -18,26 +18,26 @@ namespace Grammars {
 	//
 	// Outputs:
 	//
-	TreeNode* get_front(FrontierNode* frontierHead, FrontierNode* frontierTail) {
+	TreeNode* get_front(FrontierNode** frontierHead, FrontierNode** frontierTail) {
 
 		// If the frontier is empty return nullptr
 		if (!frontierHead) return nullptr;
 
 		// Else extract the TreeNode
-		TreeNode* current_node = frontierHead->n;
+		TreeNode* current_node = (*frontierHead)->n;
 
 		// Remove the extracted node from the frontier
 
 		// If the frontier has only one node
-		if (frontierHead == frontierTail) {
-			delete frontierHead;
-			frontierHead = nullptr;
-			frontierTail = nullptr;
+		if (*frontierHead == *frontierTail) {
+			delete *frontierHead;
+			*frontierHead = nullptr;
+			*frontierTail = nullptr;
 		}
 		else {
-			FrontierNode* temp_node = frontierHead->next;
-			delete frontierHead;
-			frontierHead = temp_node;
+			FrontierNode* temp_node = (*frontierHead)->next;
+			delete *frontierHead;
+			*frontierHead = temp_node;
 		}
 
 		return current_node;
@@ -54,19 +54,19 @@ namespace Grammars {
 	//
 	// Outputs:
 	//
-	void add_to_back(FrontierNode* frontierHead, FrontierNode* frontierTail, TreeNode* child) {
+	void add_to_back(FrontierNode** frontierHead, FrontierNode** frontierTail, TreeNode* child) {
 
 		// Construct the new node
 		FrontierNode* node = new FrontierNode(child);
 
 		// If the frontier is empty
-		if (!frontierHead) { 
-			frontierHead = node;
-			frontierTail = node;
+		if (!*frontierHead) { 
+			*frontierHead = node;
+			*frontierTail = node;
 		} 
 		else {
-			frontierTail->next = node;
-			frontierTail = frontierTail->next;
+			(*frontierTail)->next = node;
+			*frontierTail = (*frontierTail)->next;
 		}
 	}
 
@@ -97,7 +97,7 @@ namespace Grammars {
 
 //----------------------------------------------------------------
 
-	// Generate words using all the compination of the given 'rules'
+	// Generate words using all the compinations of the given 'rules'
 	//
 	// We push_back to the vector 'words' only the generated words that all their
 	// non-terminal symbols from the parent have been replaced. This happens since 
@@ -166,7 +166,7 @@ namespace Grammars {
 					newWord.begin() + location + 1, rules[vIndex][i]);
 
 				// Generate words by changing the next non-terminal symbol
-				generate_words(words, newWord, rules, ++vIndex);
+				generate_words(words, newWord, rules, vIndex + 1);
 			}
 		}
 	}
@@ -196,6 +196,9 @@ namespace Grammars {
 				word.replace(word.begin() + i, word.begin() + i + 1, replaceIndicator);
 			}
 		}
+
+		// If there are no non-terminal symbols
+		if (!toBeUsedRules.size()) return;
 
 		// Generate all the new words
 		std::vector<std::string> words;
@@ -229,7 +232,10 @@ namespace Grammars {
 
 		// Print the words to the screen starting from the end of 'words' (the root node)
 		for (int i = words.size() - 1; i >= 0; --i)
-			std::cout << words[i] << "->";
+			if (i)
+				std::cout << words[i] << " -> ";
+			else
+				std::cout << words[i];
 	}
 
 //----------------------------------------------------------------

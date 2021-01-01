@@ -40,8 +40,8 @@ void define_new_grammar(std::vector<Grammars::ContextFreeGrammar>& grammars, boo
 
 				// Check if any grammar is already defined
 				bool alreadyDefined = false;
-				for (const Grammars::ContextFreeGrammar& grammar : grammars) {
-					if (infile.path().string() == grammar) {
+				for (Grammars::ContextFreeGrammar& grammar : grammars) {
+					if (grammar == infile.path().string()) {
 						alreadyDefined = true;
 						break;
 					}
@@ -55,7 +55,7 @@ void define_new_grammar(std::vector<Grammars::ContextFreeGrammar>& grammars, boo
 		else {
 
 			// Check if grammar is already defined
-			for (const Grammars::ContextFreeGrammar& grammar : grammars)
+			for (Grammars::ContextFreeGrammar& grammar : grammars)
 				if (name == grammar) return;
 
 			// If it not defined define it
@@ -115,9 +115,9 @@ void use_grammar(const std::vector<Grammars::ContextFreeGrammar>& grammars) {
 
 		// Check the word and show message
 		if (grammars[STATICCASTGRAMMAR(grammarNum) - 1].check_word(word))
-			std::cout << "The word '" << word << "' was accepted!\n\n";
+			std::cout << "\nThe word '" << word << "' can be generated!\n\n";
 		else
-			std::cout << "The word '" << word << "' was NOT accepted!\n\n";
+			std::cout << "The word '" << word << "' cannot be generated!\n\n";
 
 		// More words?
 		std::cout << "Do you want to enter another word? (yes,no): ";

@@ -35,7 +35,7 @@ namespace Grammars {
 		if (eType == ErrorType::fileNotFound)
 			return "File not found\n";
 
-		std::string msg = "Error in line: " + eLine;
+		std::string msg{ "Error in line:" + std::to_string(eLine) + "\n" };
 
 		if (eType == ErrorType::nTermSymbolsError)
 			msg += "Please use a positive integer";

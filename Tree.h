@@ -69,10 +69,10 @@ namespace Grammars {
 
 	// Get the first node that is in the frontier to check
 	// if it is the solution or to expand it
-	TreeNode* get_front(FrontierNode* frontierHead, FrontierNode* frontierTail);
+	TreeNode* get_front(FrontierNode** frontierHead, FrontierNode** frontierTail);
 
 	// Add the new child to the back of the frontier
-	void add_to_back(FrontierNode* frontierHead, FrontierNode* frontierTail, TreeNode* child);
+	void add_to_back(FrontierNode** frontierHead, FrontierNode** frontierTail, TreeNode* child);
 
 	// Prune any child that holds a word that is already on the tree
 	// or any child that holds a word that cannot generate the solution

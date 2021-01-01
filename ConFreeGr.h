@@ -43,10 +43,6 @@ namespace Grammars {
 		// Get the name of the input file for 'this' grammar
 		operator std::string() const { return filename; }
 
-		// Check if an automaton is already defined
-		// by checking the name of the input file
-		bool operator==(std::string filename) const;
-
 	private:
 
 		std::string filename;
@@ -59,11 +55,11 @@ namespace Grammars {
 		std::vector<Rule> rules;
 		std::unordered_map<char, std::vector<std::string>> ruleMap;
 
-		std::unordered_map<char, int[2]> minRuleExpansion;
-
-		void define_min_rule_expansion();
-
 	}; // of class ConFreeGrammar
+
+	// Check if an automaton is already defined
+	// by checking the name of the input file
+	bool operator==(ContextFreeGrammar& grammar, std::string filename);
 
 //----------------------------------------------------------------
 

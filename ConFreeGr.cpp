@@ -22,6 +22,7 @@ namespace Grammars {
 		std::fstream fin{ infile };
 		if (!fin) throw Errors(0, Errors::ErrorType::fileNotFound);
 
+		filename = infile;
 
 		// Read number of terminal symbols
 		int nTermSymbols;
@@ -77,15 +78,15 @@ namespace Grammars {
 
 		// Read rules and check for duplicates
 		for (int i = 0; i < nRules; ++i) {
-			fin >> rules[i];
-			if (fin.bad() || std::find(rules.begin(), rules.end() - 1, rules[i]) != rules.end() - 1)
+			Rule rule;
+			fin >> rule;
+			if (fin.bad() || std::find(rules.begin(), rules.end(), rule) != rules.end())
 				throw Errors(7 + i, Errors::ErrorType::rulesError);
+			rules[i] = rule;
 		}
 
 		// Create a map with all the rules for faster search
 		for (Rule& rule : rules) ruleMap[rule.input].push_back(rule.output);
-
-		define_min_rule_expansion();
 
 	} // of constructor ContextFreeGrammar
 
@@ -102,12 +103,17 @@ namespace Grammars {
 	//
 	bool ContextFreeGrammar::check_word(std::string word) const {
 
+		// Check if any symbol from 'word' is not part of the terminal symbols
+		for (char ch : word)
+			if (std::find(termSymbols.begin(), termSymbols.end(), ch) == termSymbols.end())
+				return false;
+
 		// Creating the root node for the tree
-		TreeNode* root = new TreeNode{ nullptr, std::to_string(initialSymbol)};
+		TreeNode* root = new TreeNode{ nullptr, std::string{initialSymbol} };
 		
 		// Adding the node to the frontier
 		FrontierNode* frontierHead = new FrontierNode{ root };
-		FrontierNode* frontierTail = new FrontierNode{ root };
+		FrontierNode* frontierTail = frontierHead;
 
 		// Creating a set for the words
 		std::unordered_set<std::string> wordSet{ root->word };
@@ -122,17 +128,17 @@ namespace Grammars {
 		while (true) {
 
 			// Get the next to be expanded leef node
-			TreeNode* curr_node = get_front(frontierHead, frontierTail);
-			if (!curr_node) break;
+			TreeNode* currNode = get_front(&frontierHead, &frontierTail);
+			if (!currNode) break;
 
 			// Check if it holds the solution
-			if (curr_node->word == word) {
-				solutionNode = curr_node;
+			if (currNode->word == word) {
+				solutionNode = currNode;
 				break;
 			}
 
 			// Generate children nodes and add them to frontier
-			generate_children(curr_node, ruleMap, children);
+			generate_children(currNode, ruleMap, children);
 
 			// Prune the node if it is already in the tree
 			// or if there is no possible way to find a solution throught it
@@ -141,11 +147,12 @@ namespace Grammars {
 					delete children[i];
 					children[i] = nullptr;
 				}
+				else wordSet.insert(children[i]->word);
 
 			// Add children to the back of the frontier
 			for (int i = 0; i < children.size(); ++i)
 				if (children[i])
-					add_to_back(frontierHead, frontierTail, children[i]);
+					add_to_back(&frontierHead, &frontierTail, children[i]);
 			children.clear();
 		}
 
@@ -163,15 +170,16 @@ namespace Grammars {
 	// Check if 'filename' is the same as 'this->filename'
 	//
 	// Inputs:
+	//		std::string grammarName: the filename of the grammar
 	//		std::string filename: the input file to check
 	//
 	// Outputs:
 	//		bool true: The grammar in 'filename' is already defined
 	//		bool false: The grammar in 'filename' is NOT already defined
 	//
-	bool ContextFreeGrammar::operator==(std::string filename) const {
+	bool operator==(ContextFreeGrammar& grammar, std::string filename) {
 
-		std::string grammarName = *this;
+		std::string grammarName = grammar;
 
 		for (char& ch : grammarName)
 			if (ch == '\\' || ch == '/')
@@ -184,17 +192,6 @@ namespace Grammars {
 		return grammarName == filename;
 
 	} // of operator==
-
-//----------------------------------------------------------------
-
-	void ContextFreeGrammar::define_min_rule_expansion() {
-
-		for (Rule rule : rules) {
-			minRuleExpansion[rule.input][0] = -1;
-			minRuleExpansion[rule.input][1] = -1;
-		}
-
-	} // of function define_min_rule_expansion
 
 //----------------------------------------------------------------
 
