@@ -18,9 +18,6 @@
     <ClInclude Include="ConFreeGr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Rule.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="GramErr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -39,9 +36,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Tree.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Rule.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

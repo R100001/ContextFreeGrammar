@@ -11,10 +11,10 @@
 #include <algorithm>
 #include <unordered_set>
 #include <unordered_map>
+#include <chrono>
 
 //----------------------------------------------------------------
 
-#include "Rule.h"
 #include "GramErr.h"
 #include "Tree.h"
 
@@ -49,11 +49,11 @@ namespace Grammars {
 
 		char initialSymbol;
 
-		std::vector<char> termSymbols;
-		std::vector<char> nonTermSymbols;
+		std::unordered_set<char> termSymbols;
+		std::unordered_set<char> nonTermSymbols;
 
-		std::vector<Rule> rules;
 		std::unordered_map<char, std::vector<std::string>> ruleMap;
+		std::unordered_map<std::string, std::vector<char>> reversedRules;
 
 	}; // of class ConFreeGrammar
 

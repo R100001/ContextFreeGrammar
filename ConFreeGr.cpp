@@ -12,7 +12,7 @@ namespace Grammars {
 	// Read a file and construct the Grammar corresponding the that file
 	//
 	// Inputs:
-	//		std::string infile: the name of the file to read
+	//		-std::string infile: the name of the file to read
 	//
 	// Outputs:
 	//
@@ -30,13 +30,13 @@ namespace Grammars {
 		if (fin.bad() || nTermSymbols < 1)
 			throw Errors(1, Errors::ErrorType::nTermSymbolsError);
 
-		// Create a vector for terminal symbols
-		termSymbols = std::vector<char>(nTermSymbols);
-
+		char tempSymbol = ' ';
 		// Read the terminal symbols and check for duplicates
 		for (int i = 0; i < nTermSymbols; ++i)
-			if (std::find(termSymbols.begin(), termSymbols.end(), fin.peek()) == termSymbols.end())
-				fin >> termSymbols[i];
+			if (!termSymbols.contains(fin.peek())) {
+				fin >> tempSymbol;
+				termSymbols.insert(tempSymbol);
+			}
 			else
 				throw Errors(2, Errors::ErrorType::duplicateTermSymbol);
 
@@ -47,23 +47,20 @@ namespace Grammars {
 		if (fin.bad() || nNonTermSymbols < 1)
 			throw Errors(3, Errors::ErrorType::nNonTermSymbolsError);
 
-		// Create a vector for non-terminal symbols
-		nonTermSymbols = std::vector<char>(nNonTermSymbols);
-
 		// Read the non-terminal symbols and check for duplicates
 		// both in nonTermSymbols vector and in termSymbols vector
 		for (int i = 0; i < nNonTermSymbols; ++i)
-			if (std::find(nonTermSymbols.begin(), nonTermSymbols.end(), fin.peek()) == nonTermSymbols.end() ||
-				std::find(termSymbols.begin(), termSymbols.end(), fin.peek()) != termSymbols.end())
-				fin >> nonTermSymbols[i];
+			if (!nonTermSymbols.contains(fin.peek()) || !termSymbols.contains(fin.peek())) {
+				fin >> tempSymbol;
+				nonTermSymbols.insert(tempSymbol);
+			}
 			else
 				throw Errors(4, Errors::ErrorType::duplicateNonTermSymbol);
 
 
 		// Read the initial symbol and check if it is defined in the non-terminal symbols
 		fin >> initialSymbol;
-		if(fin.bad() || 
-			std::find(nonTermSymbols.begin(), nonTermSymbols.end(), initialSymbol) == nonTermSymbols.end())
+		if(fin.bad() || !nonTermSymbols.contains(initialSymbol))
 			throw Errors(5, Errors::ErrorType::initialSymbolError);
 
 
@@ -73,20 +70,25 @@ namespace Grammars {
 		if (fin.bad() || nRules < 1)
 			throw Errors(6, Errors::ErrorType::nRulesError);
 
-		// Create a vector for rules
-		rules = std::vector<Rule>(nRules);
-
 		// Read rules and check for duplicates
+		char ruleInput = ' ';
+		std::string ruleOutput;
 		for (int i = 0; i < nRules; ++i) {
-			Rule rule;
-			fin >> rule;
-			if (fin.bad() || std::find(rules.begin(), rules.end(), rule) != rules.end())
-				throw Errors(7 + i, Errors::ErrorType::rulesError);
-			rules[i] = rule;
-		}
+			
+			fin >> ruleInput;
+			if (!isspace(fin.peek())) fin.setstate(std::fstream::badbit);
+			fin >> ruleOutput;
 
-		// Create a map with all the rules for faster search
-		for (Rule& rule : rules) ruleMap[rule.input].push_back(rule.output);
+			if (fin.bad() || std::find(ruleMap[ruleInput].begin(), ruleMap[ruleInput].end(),
+								ruleOutput) != ruleMap[ruleInput].end())
+				throw Errors(7 + i, Errors::ErrorType::rulesError);
+
+			ruleMap[ruleInput].push_back(ruleOutput);
+
+			// Will be used to check the generated non-terminal symbols
+			// between terminal oness
+			reversedRules[ruleOutput].push_back(ruleInput);
+		}
 
 	} // of constructor ContextFreeGrammar
 
@@ -95,17 +97,17 @@ namespace Grammars {
 	// Check if a word can be generated from 'this' grammar
 	//
 	// Inputs:
-	//		std::string word: the given word
+	//		-std::string word: the given word
 	//
 	// Outputs:
-	//		bool true: 'word' was accepted
-	//		bool false: 'word' was NOT accepted
+	//		-bool true: 'word' was accepted
+	//		-bool false: 'word' was NOT accepted
 	//
 	bool ContextFreeGrammar::check_word(std::string word) const {
 
 		// Check if any symbol from 'word' is not part of the terminal symbols
 		for (char ch : word)
-			if (std::find(termSymbols.begin(), termSymbols.end(), ch) == termSymbols.end())
+			if (!termSymbols.contains(ch))
 				return false;
 
 		// Creating the root node for the tree
@@ -137,17 +139,37 @@ namespace Grammars {
 				break;
 			}
 
-			// Generate children nodes and add them to frontier
-			generate_children(currNode, ruleMap, children);
+			{
+				//using namespace std::chrono;
 
-			// Prune the node if it is already in the tree
-			// or if there is no possible way to find a solution throught it
-			for (int i = 0; i < children.size(); ++i)
-				if (prune(word, children[i], wordSet)) {
-					delete children[i];
-					children[i] = nullptr;
-				}
-				else wordSet.insert(children[i]->word);
+				//auto time = system_clock::now();
+
+				// Generate children nodes and add them to frontier
+				//std::cout << currNode->word << '\n';
+				generate_children(currNode, ruleMap, children); 
+
+				//std::cout << "Generation time: "
+				//	<< duration_cast<milliseconds>(system_clock::now() - time).count()
+				//	<< " ms\n\n";
+
+				//time = system_clock::now();
+
+				// Prune the node if it is already in the tree
+				// or if there is no possible way to find a solution throught it
+				for (int i = 0; i < children.size(); ++i)
+					if (prune(word, children[i], wordSet, termSymbols, nonTermSymbols, reversedRules)) {
+						delete children[i];
+						children[i] = nullptr;
+					}
+					else {
+						//std::cout << children[i]->word << '\n';
+						wordSet.insert(children[i]->word);
+					}
+
+				//std::cout << "Prune time: "
+				//	<< duration_cast<milliseconds>(system_clock::now() - time).count()
+				//	<< " ms\n\n";
+			}
 
 			// Add children to the back of the frontier
 			for (int i = 0; i < children.size(); ++i)
@@ -170,12 +192,12 @@ namespace Grammars {
 	// Check if 'filename' is the same as 'this->filename'
 	//
 	// Inputs:
-	//		std::string grammarName: the filename of the grammar
-	//		std::string filename: the input file to check
+	//		-std::string grammarName: the filename of the grammar
+	//		-std::string filename: the input file to check
 	//
 	// Outputs:
-	//		bool true: The grammar in 'filename' is already defined
-	//		bool false: The grammar in 'filename' is NOT already defined
+	//		-bool true: The grammar in 'filename' is already defined
+	//		-bool false: The grammar in 'filename' is NOT already defined
 	//
 	bool operator==(ContextFreeGrammar& grammar, std::string filename) {
 

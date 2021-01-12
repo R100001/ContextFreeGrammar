@@ -145,14 +145,12 @@
   <ItemGroup>
     <ClInclude Include="ConFreeGr.h" />
     <ClInclude Include="GramErr.h" />
-    <ClInclude Include="Rule.h" />
     <ClInclude Include="Tree.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ConFreeGr.cpp" />
     <ClCompile Include="GramErr.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Rule.cpp" />
     <ClCompile Include="Tree.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

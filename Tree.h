@@ -13,13 +13,15 @@
 
 //----------------------------------------------------------------
 
-#include "Rule.h"
+#define EMPTYSTRING "@"
+
+#define STATICCASTWORDINDEX static_cast<std::basic_string<char, std::char_traits<char>, std::allocator<char>>::size_type>
 
 //----------------------------------------------------------------
 
 namespace Grammars {
 
-	//----------------------------------------------------------------
+//----------------------------------------------------------------
 
 	/*struct TreeNode {
 
@@ -33,7 +35,7 @@ namespace Grammars {
 
 		TreeNode* parent;	// The parent node
 		int rulePos;		// Position of the non-Terminal char...
-		Rule rule;			// ...from the parent that changed with 'rule'
+		Rule rule;			// ...of the parent that changed with 'rule'
 		std::string word;	// The word on the current node
 		int depth;			// Depth of the node from the root node
 
@@ -76,7 +78,11 @@ namespace Grammars {
 
 	// Prune any child that holds a word that is already on the tree
 	// or any child that holds a word that cannot generate the solution
-	bool prune(std::string finalWord, TreeNode* child, const std::unordered_set<std::string>& wordSet);
+	bool prune(std::string finalWord, TreeNode* child,
+		const std::unordered_set<std::string>& wordSet,
+		const std::unordered_set<char>& terminalSymbols,
+		const std::unordered_set<char>& nonTerminalSymbols,
+		const std::unordered_map<std::string, std::vector<char>>& reversedRules);
 
 	// Generate children by applying the rules to theirs parent's word
 	void generate_children(TreeNode* node,

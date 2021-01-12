@@ -12,8 +12,8 @@ namespace Grammars {
 	// The constructor of an error
 	//
 	// Inputs:
-	//		int line: the line that the error occured
-	//		ErrorType error: the type of the error (check Errors::ErrorType)
+	//		-int line: the line that the error occured
+	//		-ErrorType error: the type of the error (check Errors::ErrorType)
 	//
 	// Outputs:
 	//
@@ -29,7 +29,7 @@ namespace Grammars {
 	// Inputs:
 	//
 	// Outputs:
-	//		std::string msg: the error message
+	//		-std::string msg: the error message
 	std::string Errors::what() const {
 
 		if (eType == ErrorType::fileNotFound)

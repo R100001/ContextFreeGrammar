@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <filesystem>
+#include <chrono>
 
 //------------------------------------------------------------------------
 
@@ -14,7 +15,8 @@
 // Define a new grammar from an input file and expand the vector 'grammars'
 //
 // Inputs:
-//		std::vector<Grammars::ContextFreeGrammar>& grammar: A vector containing all the defined grammars
+//		-std::vector<Grammars::ContextFreeGrammar>& grammar: 
+//			A vector containing all the defined grammars
 //
 // Outputs:
 //
@@ -76,7 +78,7 @@ void define_new_grammar(std::vector<Grammars::ContextFreeGrammar>& grammars, boo
 // Check words in an already defined grammar
 //
 // Inputs:
-//		const std::vector<Grammars::ContextFreeGrammar>& grammar: Defined grammar
+//		-const std::vector<Grammars::ContextFreeGrammar>& grammar: Defined grammar
 //
 // Outputs:
 //
@@ -114,10 +116,18 @@ void use_grammar(const std::vector<Grammars::ContextFreeGrammar>& grammars) {
 		std::cin >> word;
 
 		// Check the word and show message
-		if (grammars[STATICCASTGRAMMAR(grammarNum) - 1].check_word(word))
-			std::cout << "\nThe word '" << word << "' can be generated!\n\n";
-		else
-			std::cout << "The word '" << word << "' cannot be generated!\n\n";
+		{
+			using namespace std::chrono;
+
+			auto time = system_clock::now();
+			if (grammars[STATICCASTGRAMMAR(grammarNum) - 1].check_word(word))
+				std::cout << "\nThe word '" << word << "' can be generated!\n";
+			else
+				std::cout << "The word '" << word << "' cannot be generated!\n";
+			std::cout << "Time: " 
+				<< duration_cast<milliseconds>(system_clock::now() - time).count()
+				<< " ms\n\n";
+		}
 
 		// More words?
 		std::cout << "Do you want to enter another word? (yes,no): ";
