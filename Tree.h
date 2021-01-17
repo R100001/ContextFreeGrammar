@@ -13,9 +13,9 @@
 
 //----------------------------------------------------------------
 
-#define EMPTYSTRING "@"
+#include "Macros.h"
 
-#define STATICCASTWORDINDEX static_cast<std::basic_string<char, std::char_traits<char>, std::allocator<char>>::size_type>
+#include "Rule.h"
 
 //----------------------------------------------------------------
 
@@ -23,35 +23,20 @@ namespace Grammars {
 
 //----------------------------------------------------------------
 
-	/*struct TreeNode {
-
-		// Default constructor
-		TreeNode() :parent{ nullptr }, rulePos{ -1 }, rule{ Rule() },
-			word{ std::string() }, depth{ -1 } {}
-
-		// Constructor to initialize children
-		TreeNode(TreeNode* p, int rPos, Rule r, std::string w, int d)
-			:parent{ p }, rulePos{ rPos }, rule{ r }, word{ w }, depth{ d } {}
-
-		TreeNode* parent;	// The parent node
-		int rulePos;		// Position of the non-Terminal char...
-		Rule rule;			// ...of the parent that changed with 'rule'
-		std::string word;	// The word on the current node
-		int depth;			// Depth of the node from the root node
-
-	}; // of struct TreeNode*/
-
 	struct TreeNode {
 
 		// Default constructor
-		TreeNode() :parent{ nullptr }, word{ std::string() } {}
+		TreeNode() 
+			:parent{ nullptr }, word{ std::string() }, depth{ 0 }, heuristic{ 0 } {}
 
 		// Constructor to initialize children
-		TreeNode(TreeNode* p, std::string w)
-			:parent{ p }, word{ w } {}
+		TreeNode(TreeNode* p, std::string w, unsigned int d, unsigned int h)
+			:parent{ p }, word{ w }, depth{ d }, heuristic{ h } {}
 
 		TreeNode* parent;	// The parent node
 		std::string word;	// The word on the current node
+		unsigned int depth;
+		unsigned int heuristic;
 
 	}; // of struct TreeNode
 
@@ -75,6 +60,9 @@ namespace Grammars {
 
 	// Add the new child to the back of the frontier
 	void add_to_back(FrontierNode** frontierHead, FrontierNode** frontierTail, TreeNode* child);
+	
+	// Add the child in order in the frontier
+	void add_in_order(FrontierNode** frontierHead, FrontierNode** frontierTail, TreeNode* child);
 
 	// Prune any child that holds a word that is already on the tree
 	// or any child that holds a word that cannot generate the solution
@@ -82,12 +70,16 @@ namespace Grammars {
 		const std::unordered_set<std::string>& wordSet,
 		const std::unordered_set<char>& terminalSymbols,
 		const std::unordered_set<char>& nonTerminalSymbols,
-		const std::unordered_map<std::string, std::vector<char>>& reversedRules);
+		const size_t maxRuleGenLen);
 
 	// Generate children by applying the rules to theirs parent's word
 	void generate_children(TreeNode* node,
 		std::unordered_map<char, std::vector<std::string>> ruleMap,
-		std::vector<TreeNode*>& children);
+		std::vector<TreeNode*>& children,
+		const std::unordered_set<char>& nonTermSymbols);
+
+	// Clear the tree to avoid memory leaks
+	void clear_tree(FrontierNode* head);
 
 	// Print the solution to the screen
 	void show_solution(TreeNode* solutionNode);

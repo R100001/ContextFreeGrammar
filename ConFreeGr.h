@@ -11,18 +11,19 @@
 #include <algorithm>
 #include <unordered_set>
 #include <unordered_map>
-#include <chrono>
 
 //----------------------------------------------------------------
+
+#include "Macros.h"
 
 #include "GramErr.h"
 #include "Tree.h"
 
 //----------------------------------------------------------------
 
-#define STATICCASTGRAMMAR static_cast<std::vector<Grammars::ContextFreeGrammar, std::allocator<Grammars::ContextFreeGrammar>>::size_type>
-
-//----------------------------------------------------------------
+#ifdef SHOW_DETAILS
+#include <chrono>
+#endif // SHOW_DETAILS
 
 namespace Grammars {
 
@@ -53,7 +54,8 @@ namespace Grammars {
 		std::unordered_set<char> nonTermSymbols;
 
 		std::unordered_map<char, std::vector<std::string>> ruleMap;
-		std::unordered_map<std::string, std::vector<char>> reversedRules;
+
+		size_t maxRuleGenLen;
 
 	}; // of class ConFreeGrammar
 

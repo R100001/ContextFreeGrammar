@@ -12,7 +12,7 @@ namespace Grammars {
 	// Read a file and construct the Grammar corresponding the that file
 	//
 	// Inputs:
-	//		-std::string infile: the name of the file to read
+	//		- std::string infile: the name of the file to read
 	//
 	// Outputs:
 	//
@@ -73,6 +73,7 @@ namespace Grammars {
 		// Read rules and check for duplicates
 		char ruleInput = ' ';
 		std::string ruleOutput;
+		maxRuleGenLen = 0;
 		for (int i = 0; i < nRules; ++i) {
 			
 			fin >> ruleInput;
@@ -83,11 +84,25 @@ namespace Grammars {
 								ruleOutput) != ruleMap[ruleInput].end())
 				throw Errors(7 + i, Errors::ErrorType::rulesError);
 
-			ruleMap[ruleInput].push_back(ruleOutput);
+			// Discard rules that won't make a difference
+			if (std::string{ ruleInput } == ruleOutput) continue;
 
-			// Will be used to check the generated non-terminal symbols
-			// between terminal oness
-			reversedRules[ruleOutput].push_back(ruleInput);
+			ruleMap[ruleInput].push_back(ruleOutput);
+			
+			// Define the max length of the rule outputs
+			bool onlyNonTerms = true;
+			for (char ch : ruleOutput)
+				if (termSymbols.contains(ch)) {
+					onlyNonTerms = false;
+					break;
+				}
+			if (onlyNonTerms)
+				if (!maxRuleGenLen)
+					maxRuleGenLen = ruleOutput.length();
+				else
+					if (maxRuleGenLen < ruleOutput.length())
+						maxRuleGenLen = ruleOutput.length();
+
 		}
 
 	} // of constructor ContextFreeGrammar
@@ -97,11 +112,11 @@ namespace Grammars {
 	// Check if a word can be generated from 'this' grammar
 	//
 	// Inputs:
-	//		-std::string word: the given word
+	//		- std::string word: the given word
 	//
 	// Outputs:
-	//		-bool true: 'word' was accepted
-	//		-bool false: 'word' was NOT accepted
+	//		- bool true: 'word' was accepted
+	//		- bool false: 'word' was NOT accepted
 	//
 	bool ContextFreeGrammar::check_word(std::string word) const {
 
@@ -111,13 +126,17 @@ namespace Grammars {
 				return false;
 
 		// Creating the root node for the tree
-		TreeNode* root = new TreeNode{ nullptr, std::string{initialSymbol} };
+		TreeNode* root = new TreeNode{ nullptr, std::string{initialSymbol}, 0, 1 };
 		
 		// Adding the node to the frontier
 		FrontierNode* frontierHead = new FrontierNode{ root };
 		FrontierNode* frontierTail = frontierHead;
 
-		// Creating a set for the words
+		// Creating a vector for the nodes that will be used to delete them
+		// after searcing for a solution
+		std::vector<TreeNode*> to_be_deleted_nodes;
+
+		// Creating a set for the words added to the tree
 		std::unordered_set<std::string> wordSet{ root->word };
 
 		// A TreeNode-pointer vector to store the children generated in every loop
@@ -131,6 +150,7 @@ namespace Grammars {
 
 			// Get the next to be expanded leef node
 			TreeNode* currNode = get_front(&frontierHead, &frontierTail);
+			to_be_deleted_nodes.push_back(currNode);
 			if (!currNode) break;
 
 			// Check if it holds the solution
@@ -139,51 +159,71 @@ namespace Grammars {
 				break;
 			}
 
+#ifdef SHOW_DETAILS
 			{
-				//using namespace std::chrono;
+				using namespace std::chrono;
 
-				//auto time = system_clock::now();
+				auto time = system_clock::now();
+
+				std::cout << currNode->word << '\n';
+#endif // SHOW_DETAILS
 
 				// Generate children nodes and add them to frontier
-				//std::cout << currNode->word << '\n';
-				generate_children(currNode, ruleMap, children); 
+				generate_children(currNode, ruleMap, children, nonTermSymbols);
 
-				//std::cout << "Generation time: "
-				//	<< duration_cast<milliseconds>(system_clock::now() - time).count()
-				//	<< " ms\n\n";
+#ifdef SHOW_DETAILS
+				std::cout << "Generation time: "
+					<< duration_cast<milliseconds>(system_clock::now() - time).count()
+					<< " ms\n";
+#endif // SHOW_DETAILS
 
-				//time = system_clock::now();
+#ifdef SHOW_DETAILS
+				time = system_clock::now();
+#endif // SHOW_DETAILS
 
 				// Prune the node if it is already in the tree
 				// or if there is no possible way to find a solution throught it
 				for (int i = 0; i < children.size(); ++i)
-					if (prune(word, children[i], wordSet, termSymbols, nonTermSymbols, reversedRules)) {
+					if (prune(word, children[i], wordSet, termSymbols, nonTermSymbols, maxRuleGenLen)) {
 						delete children[i];
 						children[i] = nullptr;
 					}
 					else {
-						//std::cout << children[i]->word << '\n';
+#ifdef DEBUG
+						std::cout << children[i]->word << '\n';
+#endif // DEBUG
 						wordSet.insert(children[i]->word);
 					}
 
-				//std::cout << "Prune time: "
-				//	<< duration_cast<milliseconds>(system_clock::now() - time).count()
-				//	<< " ms\n\n";
+#ifdef SHOW_DETAILS
+				std::cout << "Prune time: "
+					<< duration_cast<milliseconds>(system_clock::now() - time).count()
+					<< " ms\n\n";
 			}
+#endif // SHOW_DETAILS
 
 			// Add children to the back of the frontier
 			for (int i = 0; i < children.size(); ++i)
-				if (children[i])
+				if (children[i]) {
+#ifdef HEURISTIC
+					add_in_order(&frontierHead, &frontierTail, children[i]);
+#else
 					add_to_back(&frontierHead, &frontierTail, children[i]);
+#endif // HEURISTIC
+				}
 			children.clear();
-		}
+
+		} // while(true) (generation loop)
 
 		// If a solution was found print it
-		if (solutionNode) {
+		bool solutionFound = solutionNode;
+		if(solutionNode)
 			show_solution(solutionNode);
-			return true;
-		}
-		else return false;
+
+		clear_tree(frontierHead);
+		for (size_t i = 0; i < to_be_deleted_nodes.size(); ++i)
+			delete to_be_deleted_nodes[i];
+		return solutionFound;
 
 	} // of function check_word
 
@@ -192,12 +232,12 @@ namespace Grammars {
 	// Check if 'filename' is the same as 'this->filename'
 	//
 	// Inputs:
-	//		-std::string grammarName: the filename of the grammar
-	//		-std::string filename: the input file to check
+	//		- std::string grammarName: the filename of the grammar
+	//		- std::string filename: the input file to check
 	//
 	// Outputs:
-	//		-bool true: The grammar in 'filename' is already defined
-	//		-bool false: The grammar in 'filename' is NOT already defined
+	//		- bool true: The grammar in 'filename' is already defined
+	//		- bool false: The grammar in 'filename' is NOT already defined
 	//
 	bool operator==(ContextFreeGrammar& grammar, std::string filename) {
 

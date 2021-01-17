@@ -3,19 +3,26 @@
 
 #include <iostream>
 #include <filesystem>
-#include <chrono>
 
 //------------------------------------------------------------------------
+
+#include "Macros.h"
 
 #include "ConFreeGr.h"
 #include "GramErr.h"
 
 //------------------------------------------------------------------------
 
+#ifdef SHOW_TIME
+#include <chrono>
+#endif // SHOW_TIME
+
+//------------------------------------------------------------------------
+
 // Define a new grammar from an input file and expand the vector 'grammars'
 //
 // Inputs:
-//		-std::vector<Grammars::ContextFreeGrammar>& grammar: 
+//		- std::vector<Grammars::ContextFreeGrammar>& grammar: 
 //			A vector containing all the defined grammars
 //
 // Outputs:
@@ -78,7 +85,7 @@ void define_new_grammar(std::vector<Grammars::ContextFreeGrammar>& grammars, boo
 // Check words in an already defined grammar
 //
 // Inputs:
-//		-const std::vector<Grammars::ContextFreeGrammar>& grammar: Defined grammar
+//		- const std::vector<Grammars::ContextFreeGrammar>& grammar: Defined grammar
 //
 // Outputs:
 //
@@ -115,19 +122,26 @@ void use_grammar(const std::vector<Grammars::ContextFreeGrammar>& grammars) {
 		std::string word;
 		std::cin >> word;
 
-		// Check the word and show message
+		
+#ifdef SHOW_TIME
 		{
 			using namespace std::chrono;
 
 			auto time = system_clock::now();
+#endif // SHOW_TIME
+
+			// Check the word and show message
 			if (grammars[STATICCASTGRAMMAR(grammarNum) - 1].check_word(word))
-				std::cout << "\nThe word '" << word << "' can be generated!\n";
+				std::cout << "\nThe word '" << word << "' can be generated!\n\n";
 			else
-				std::cout << "The word '" << word << "' cannot be generated!\n";
+				std::cout << "The word '" << word << "' cannot be generated!\n\n";
+
+#ifdef SHOW_TIME
 			std::cout << "Time: " 
 				<< duration_cast<milliseconds>(system_clock::now() - time).count()
 				<< " ms\n\n";
 		}
+#endif // SHOW_TIME
 
 		// More words?
 		std::cout << "Do you want to enter another word? (yes,no): ";
@@ -161,7 +175,7 @@ try {
 		// Show appropriate message 
 		std::cout << "What do you want to do?\n";
 		std::cout << "1: Insert new grammar\n";
-		std::cout << "2: Use grammar\n";
+		std::cout << "2: Use a grammar\n";
 		std::cout << "3: Exit\n\n";
 		std::cout << ">> ";
 
@@ -173,7 +187,7 @@ try {
 		if (input == "1") {
 
 			std::cout << "0: Back\n";
-			std::cout << "1: Insert grammar\n";
+			std::cout << "1: Insert a grammar\n";
 			std::cout << "2: Insert grammars from a folder\n\n";
 
 			int answer = -1;
