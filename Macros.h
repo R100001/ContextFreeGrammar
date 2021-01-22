@@ -5,7 +5,9 @@
 
 //----------------------------------------------------------------
 
-//#define DEBUG
+//#define SHOW_RULES
+//#define SHOW_GENERATED
+#define SHOW_PRUNED
 
 #define HEURISTIC
 

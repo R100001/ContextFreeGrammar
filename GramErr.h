@@ -31,13 +31,14 @@ namespace Grammars {
 
 		// Construct the error by providing the line and the type
 		// Use Errors::ErrorType to get the possible errors
-		Errors(int line, ErrorType error);
+		Errors(std::string infile, int line, ErrorType error);
 
 		// What happened
 		std::string what() const;
 
 	private:
 
+		std::string filename;
 		int eLine;
 		ErrorType eType;
 

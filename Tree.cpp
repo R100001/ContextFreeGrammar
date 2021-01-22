@@ -71,7 +71,10 @@ namespace Grammars {
 		}
 	}
 
-	// Add in order in the frontier the new child
+//----------------------------------------------------------------
+
+	// Add in order the new child to the frontier depending on the heuristic score
+	// and the depth of the node in the tree
 	//
 	// Inputs:
 	//		- FrontierNode* frontierHead: the head of the frontier that the child will be added
@@ -95,6 +98,7 @@ namespace Grammars {
 			FrontierNode* temp = *frontierHead;
 			FrontierNode* previous = nullptr;
 
+			// Less is better for both heuristic score and depth of the node
 			while (temp) {
 				if (temp->n->heuristic > node->n->heuristic ||
 					(temp->n->heuristic == node->n->heuristic &&
@@ -179,18 +183,160 @@ namespace Grammars {
 
 		return onlyTermsIndex != onlyTerms.length();
 
-	}
+	} // of function check_terminal_symbols
 
-	bool check_rule_generation(const std::string& word, const std::string& childWord) {
+//----------------------------------------------------------------
 
-		
-
-		return false;
-	}
-
+	// Check if the concurrent non-terminal symbols have expanded unnecessarily much between two terminals
+	// This function needs check_terminal_symbols to be called first to make sure the terminal symbols
+	// is in the right order
+	// Inputs:
+	//		- const std::string& word: the word we want to generate
+	//		- const std::string& childWord: the current generated word
+	//		- const std::unordered_set<char>& nonTerminalSymbols: the non-terminal symbols of the grammar
+	// 
+	// Outputs:
+	//		- bool true: the child needs pruning
+	//		- bool false: the child does NOT need pruning
+	//
 	bool check_non_terminal_positions(const std::string& word, const std::string& childWord,
 		const std::unordered_set<char>& nonTerminalSymbols) {
-		
+
+		if (childWord.length() < 2) return false;
+
+		// Search for the first non-terminal from the start of after terminals
+		for (int i = 0; i < childWord.length(); ++i) {
+
+			// If the current symbol is a non-terminal
+			if (nonTerminalSymbols.contains(childWord[i])) {
+
+				// Start searching for the last concurrent non-terminal
+				int j = i;
+				for (; j < childWord.length(); ++j)
+					if (!nonTerminalSymbols.contains(childWord[j]))
+						break;
+
+				// If the whole childWord has non terminals
+				if (i == 0 && j == childWord.length()) return false;
+
+				// If the concurrent non-terminals start from the start
+				if (i == 0) {
+
+					// Count the occurences of the first terminal after the concurrent non-terminals in 'childWord'
+					int countChildWordJInChildWord = 0;
+					for (int k = j; k < childWord.length(); ++k)
+						if (childWord[j] == childWord[k])
+							++countChildWordJInChildWord;
+
+					// Check if the position of the first terminal after the concurrent non-terminals in 'childWord' is greater
+					// than the position of the same symbol in 'word' after ignoring countChildWordJInChildWord - 1 symbols from the end
+					for (int k = word.length() - 1; k >= 0; --k)
+						if (word[k] == childWord[j])
+							if (countChildWordJInChildWord == 1) {
+								if (k < j)
+									return true;
+								else
+									break;
+							}
+							else --countChildWordJInChildWord;
+				}
+				// If the concurrent non-terminals end when the childWord ends
+				else if (j == childWord.length()) {
+					
+					// Adjusting 'i' so it will point on the first terminal before the non-terminals
+					--i;
+
+					// Count the occurences of the first terminal before the concurrent non-terminals in 'childWord'
+					int countChildWordIInChildWord = 0;
+					for (int k = 0; k <= i; ++k)
+						if (childWord[i] == childWord[k])
+							++countChildWordIInChildWord;
+
+					// Check if the position of the first terminal before the concurrent non-terminals in 'childWord' is lower
+					// than the position of the same symbol in 'word' after ignoring countChildWordJInChildWord - 1 symbols from the end
+					for (int k = 0; k < word.length(); ++k)
+						if (word[k] == childWord[i])
+							if (countChildWordIInChildWord == 1) {
+								if (word.length() - k < childWord.length() - i)
+									return true;
+								else
+									break;
+							}
+							else --countChildWordIInChildWord;
+				}
+				// If the concurrent non-terminals are somewhere in between
+				else {
+
+					// Adjusting 'i' so it will point on the first terminal before the non-terminals
+					--i;
+
+					// Count the occurences of the first terminal before the concurrent non-terminals in 'childWord'
+					int countChildWordIInChildWord = 0;
+					for (int k = 0; k <= i; ++k)
+						if (childWord[i] == childWord[k])
+							++countChildWordIInChildWord;
+
+					// Count the occurences of the first terminal after the concurrent non-terminals in 'childWord'
+					int countChildWordJInChildWord = 0;
+					for (int k = j; k < childWord.length(); ++k)
+						if (childWord[j] == childWord[k])
+							++countChildWordJInChildWord;
+
+					// Find the position of the countChildWordIInChildWord'th (1st, 2nd, 3rd, 4->th<- ...) terminal in 'word'
+					int posOfChildWordIInWord = 0;
+					for (int k = 0; k < word.length(); ++k) {
+						if (word[k] == childWord[i])
+							if (countChildWordIInChildWord == 1) {
+								posOfChildWordIInWord = k;
+								break;
+							}
+							else --countChildWordIInChildWord;
+					}
+
+					// Find the position of the countChildWordJInChildWord'th (1st, 2nd, 3rd, 4->th<- ...) terminal in 'word'
+					// starting from the end of 'word'
+					int posOfChildWordJInWord = 0;
+					for (int k = word.length() - 1; k >= 0; --k) {
+						if (word[k] == childWord[j])
+							if (countChildWordJInChildWord == 1) {
+								posOfChildWordJInWord = k;
+								break;
+							}
+							else --countChildWordJInChildWord;
+					}
+
+					if (j - i > posOfChildWordJInWord - posOfChildWordIInWord)
+						return true;
+
+				}
+				i = j;
+			}
+		}
+		return false;
+
+	} // of function check_non_terminal_symbols
+
+//----------------------------------------------------------------
+
+	// Check if a rule generated output with two or more non-terminals that are the same
+	// as the input and this non-terminals outputed the same thing
+	// Example: E -> ExE -> ExE x ExE
+	// We can prune this word because at some point some other rule will be used
+	// to progress to the final word
+	// This means that when the new words are generated there is a word that has already
+	// used another rule at some place and we can still generate the wanted word
+	//
+	// I'm not sure if this function will make any real difference because
+	// it will reduce the degree of the tree by 1/rules_with_the_same_input^2 and
+	// it will add a lot to the complexity when it comes to keeping information
+	// about the rule generation when generating the words
+	// The expression 1/rules_with_the_same_input^2 indicates that if we have
+	// 10 rules with the same input it will only reduce the degree of the tree by 1%
+	//
+	bool check_rule_generation(const std::string& word, const std::string& childWord) {
+
+
+
 		return false;
 	}
 
@@ -215,8 +361,12 @@ namespace Grammars {
 		const std::unordered_set<char>& terminalSymbols,
 		const std::unordered_set<char>& nonTerminalSymbols,
 		const size_t maxRuleGenLen) {
-		
+
 		std::string childWord = child->word;
+
+		// The least length of a rule output is 1 so we can prune any childWord that has
+		// more symbols than word
+		if (childWord.length() > word.length()) return true;
 
 		// If 'wordSet' already contains the word that 'child' holds return true
 		if (wordSet.contains(childWord)) return true;
@@ -225,7 +375,7 @@ namespace Grammars {
 		if (check_terminal_symbols(word, childWord, terminalSymbols))
 			return true;
 
-		// Check if there is a reason for a non-terminal symbol to be in a certain position
+		// Check if concurrent non-terminals have expanded to unnecessarily much
 		if (check_non_terminal_positions(word, childWord, nonTerminalSymbols))
 			return true;
 
@@ -340,6 +490,7 @@ namespace Grammars {
 
 		// Generate all the new words
 		std::vector<std::string> words(generatedWordsSize);
+		//std::vector<std::vector<int>> rulesPos(generatedWordsSize);
 		size_t wordsIndex = 0;
 		generate_words(word, 0, ruleMap, lastRulePos, words, wordsIndex);
 
@@ -378,16 +529,25 @@ namespace Grammars {
 	//
 	// Inputs:
 	//		- TreeNode* solutionNode: the node that holds the solution
+	//		- const std::unordered_set<char>& nonTermSymbols: the non-terminal symbols
+	//			of the grammar
 	//
 	// Outputs:
 	//		
-	void show_solution(TreeNode* solutionNode) {
+	void show_solution(TreeNode* solutionNode, const std::unordered_set<char>& nonTermSymbols) {
 
 		// A vector for the words generated to reach the solution
 		std::vector<std::string> words;
 
 		// Until we reach the root node fill 'words' with the words in the nodes
 		while (solutionNode != nullptr) {
+			//if (solutionNode->parent) {
+			//	std::string newWord;
+			//	for (char ch : solutionNode->parent->word) {
+			//		if(ch)
+			//	}
+			//}
+			//else
 			words.push_back(solutionNode->word);
 			solutionNode = solutionNode->parent;
 		}

@@ -3,15 +3,11 @@
 
 #include <iostream>
 #include <filesystem>
+#include <sstream>
 
 //------------------------------------------------------------------------
 
 #include "Macros.h"
-
-#include "ConFreeGr.h"
-#include "GramErr.h"
-
-//------------------------------------------------------------------------
 
 #ifdef SHOW_TIME
 #include <chrono>
@@ -19,7 +15,13 @@
 
 //------------------------------------------------------------------------
 
-// Define a new grammar from an input file and expand the vector 'grammars'
+#include "ConFreeGr.h"
+#include "GramErr.h"
+
+
+//------------------------------------------------------------------------
+
+// Define a new grammar from an input file
 //
 // Inputs:
 //		- std::vector<Grammars::ContextFreeGrammar>& grammar: 
@@ -82,6 +84,71 @@ void define_new_grammar(std::vector<Grammars::ContextFreeGrammar>& grammars, boo
 
 //------------------------------------------------------------------------
 
+// Delete grammars
+// Inputs:
+//		- std::vector<Grammars::ContextFreeGrammar>& grammars: The defined grammars
+//
+// Outputs:
+//		
+void delete_grammar(std::vector<Grammars::ContextFreeGrammar>& grammars) {
+
+	// Check if any grammar is defined
+	if (!grammars.size()) {
+		std::cout << "There is no grammar to delete\n\n";
+		return;
+	}
+
+	// Show appropriate message
+	std::cout << "Choose grammars to delete (1-" << grammars.size() << "):\n";
+	std::cout << "You can delete multiple grammars by typing 'all' to delete all of them\n";
+	std::cout << "or by typing the numbers of the grammars seperated with space\n";
+	std::cout << "0: Back\n";
+	for (unsigned int i = 0; i < grammars.size(); ++i)
+		std::cout << i + 1 << ": " << (std::string)grammars[i] << '\n';
+	std::cout << '\n';
+
+	// Get answer
+	std::string answer;
+	std::cout << ">> ";
+
+	// Check answer
+	if (isalpha(std::cin.peek())) {
+
+		// Delete all grammars
+		std::cin >> answer;
+		if (answer == "all")
+			grammars.clear();
+	}
+	else if (isdigit(std::cin.peek())) {
+
+		// Delete specific grammars
+		int grammarNum = 0;
+		std::vector<int> toBeDeletedGrammars;
+
+		std::getline(std::cin, answer);
+		std::stringstream ssanswer{ answer };
+
+		while (ssanswer) {
+			ssanswer >> grammarNum;
+			if (std::find(toBeDeletedGrammars.begin(), toBeDeletedGrammars.end(), grammarNum) == toBeDeletedGrammars.end() &&
+				grammarNum > 0 && grammarNum <= grammars.size())
+				toBeDeletedGrammars.push_back(grammarNum - 1);
+			if (ssanswer.bad())
+				break;
+		}
+
+		std::sort(toBeDeletedGrammars.begin(), toBeDeletedGrammars.end(), std::greater<int>());
+		for (int num : toBeDeletedGrammars)
+			grammars.erase(grammars.begin() + num);
+
+		std::cout << '\n';
+		return;
+	}
+	else return;
+}
+
+//------------------------------------------------------------------------
+
 // Check words in an already defined grammar
 //
 // Inputs:
@@ -113,6 +180,7 @@ void use_grammar(const std::vector<Grammars::ContextFreeGrammar>& grammars) {
 	}
 	std::cout << '\n';
 	if (!grammarNum) return;
+	std::cin.ignore();
 
 	// Check words
 	while (true) {
@@ -120,8 +188,12 @@ void use_grammar(const std::vector<Grammars::ContextFreeGrammar>& grammars) {
 		// Get a new word
 		std::cout << "Enter a word: ";
 		std::string word;
-		std::cin >> word;
+		std::getline(std::cin, word);
 
+		std::string noSpaces;
+		for (const char ch : word)
+			if (!isspace(ch))
+				noSpaces += ch;
 		
 #ifdef SHOW_TIME
 		{
@@ -131,7 +203,7 @@ void use_grammar(const std::vector<Grammars::ContextFreeGrammar>& grammars) {
 #endif // SHOW_TIME
 
 			// Check the word and show message
-			if (grammars[STATICCASTGRAMMAR(grammarNum) - 1].check_word(word))
+			if (grammars[STATICCASTGRAMMAR(grammarNum) - 1].check_word(noSpaces))
 				std::cout << "\nThe word '" << word << "' can be generated!\n\n";
 			else
 				std::cout << "The word '" << word << "' cannot be generated!\n\n";
@@ -153,8 +225,8 @@ void use_grammar(const std::vector<Grammars::ContextFreeGrammar>& grammars) {
 			std::cin >> answer;
 			std::cin.clear();
 		}
-
 		std::cout << '\n';
+		std::cin.ignore();
 
 		if (answer == "no") break;
 
@@ -167,7 +239,7 @@ void use_grammar(const std::vector<Grammars::ContextFreeGrammar>& grammars) {
 int main()
 try {
 
-	std::vector<Grammars::ContextFreeGrammar> grammar;
+	std::vector<Grammars::ContextFreeGrammar> grammars;
 
 	// Program loop
 	while (true) {
@@ -175,13 +247,15 @@ try {
 		// Show appropriate message 
 		std::cout << "What do you want to do?\n";
 		std::cout << "1: Insert new grammar\n";
-		std::cout << "2: Use a grammar\n";
-		std::cout << "3: Exit\n\n";
+		std::cout << "2: Delete a grammar\n";
+		std::cout << "3: Use a grammar\n";
+		std::cout << "4: Exit\n\n";
 		std::cout << ">> ";
 
 		// Get input
 		std::string input;
 		std::cin >> input;
+		std::cin.ignore();
 		std::cout << '\n';
 
 		if (input == "1") {
@@ -200,13 +274,16 @@ try {
 
 			if (!answer) continue;
 
-			define_new_grammar(grammar, answer - 1);
+			define_new_grammar(grammars, answer - 1);
 		}
 		else if (input == "2") {
-
-			use_grammar(grammar);
+			delete_grammar(grammars);
 		}
-		else if (input == "3") break;
+		else if (input == "3") {
+
+			use_grammar(grammars);
+		}
+		else if (input == "4") break;
 
 	} // while (true) (program loop)
 

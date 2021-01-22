@@ -1,0 +1,32 @@
+27
+xy()*/+-ln^=<>%!1234567890,
+3
+SEA
+S
+26
+S A
+E 1
+E 2
+E 3
+E 4
+E 5
+E 6
+E 7
+E 8
+E 9
+E 0
+E EE
+A E,E
+S x
+S y
+S (S)
+S S+S
+S S-S
+S S/S
+S S*S
+S ln(S)
+S S^(S)
+S S^E
+S (S)%(S)
+S (S)!
+S E!

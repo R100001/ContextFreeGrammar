@@ -1,0 +1,35 @@
+30
+1234567890fojirange():whl=xy>+
+6
+SLEINO
+S
+29
+S I = E
+S L
+S if E: S
+S if E: elif: S
+S if E: else: S
+S for V in range(N): S
+S while S: S
+L S
+L L S
+E I
+E N
+E E O E
+I x
+I y
+I i
+I j
+N 0
+N 1
+N 2
+N 3
+N 4
+N 5
+N 6
+N 7
+N 8
+N 9
+N NN
+O >
+O +

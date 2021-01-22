@@ -20,7 +20,7 @@ namespace Grammars {
 
 		// Open file input stream
 		std::fstream fin{ infile };
-		if (!fin) throw Errors(0, Errors::ErrorType::fileNotFound);
+		if (!fin) throw Errors(infile, 0, Errors::ErrorType::fileNotFound);
 
 		filename = infile;
 
@@ -28,7 +28,7 @@ namespace Grammars {
 		int nTermSymbols;
 		fin >> nTermSymbols;
 		if (fin.bad() || nTermSymbols < 1)
-			throw Errors(1, Errors::ErrorType::nTermSymbolsError);
+			throw Errors(filename, 1, Errors::ErrorType::nTermSymbolsError);
 
 		char tempSymbol = ' ';
 		// Read the terminal symbols and check for duplicates
@@ -38,14 +38,14 @@ namespace Grammars {
 				termSymbols.insert(tempSymbol);
 			}
 			else
-				throw Errors(2, Errors::ErrorType::duplicateTermSymbol);
+				throw Errors(filename, 2, Errors::ErrorType::duplicateTermSymbol);
 
 
 		// Read number of non-terminal symbols
 		int nNonTermSymbols;
 		fin >> nNonTermSymbols;
 		if (fin.bad() || nNonTermSymbols < 1)
-			throw Errors(3, Errors::ErrorType::nNonTermSymbolsError);
+			throw Errors(filename, 3, Errors::ErrorType::nNonTermSymbolsError);
 
 		// Read the non-terminal symbols and check for duplicates
 		// both in nonTermSymbols vector and in termSymbols vector
@@ -55,20 +55,20 @@ namespace Grammars {
 				nonTermSymbols.insert(tempSymbol);
 			}
 			else
-				throw Errors(4, Errors::ErrorType::duplicateNonTermSymbol);
+				throw Errors(filename, 4, Errors::ErrorType::duplicateNonTermSymbol);
 
 
 		// Read the initial symbol and check if it is defined in the non-terminal symbols
 		fin >> initialSymbol;
 		if(fin.bad() || !nonTermSymbols.contains(initialSymbol))
-			throw Errors(5, Errors::ErrorType::initialSymbolError);
+			throw Errors(filename, 5, Errors::ErrorType::initialSymbolError);
 
 
 		// Read the number of rules
 		int nRules;
 		fin >> nRules;
 		if (fin.bad() || nRules < 1)
-			throw Errors(6, Errors::ErrorType::nRulesError);
+			throw Errors(filename, 6, Errors::ErrorType::nRulesError);
 
 		// Read rules and check for duplicates
 		char ruleInput = ' ';
@@ -78,11 +78,18 @@ namespace Grammars {
 			
 			fin >> ruleInput;
 			if (!isspace(fin.peek())) fin.setstate(std::fstream::badbit);
-			fin >> ruleOutput;
+			std::getline(fin, ruleOutput);
+
+			std::string noSpaces;
+			for (const char ch : ruleOutput)
+				if (!isspace(ch))
+					noSpaces += ch;
+			ruleOutput = noSpaces;
+			if (ruleOutput == EMPTYSTRING) ruleOutput = "";
 
 			if (fin.bad() || std::find(ruleMap[ruleInput].begin(), ruleMap[ruleInput].end(),
 								ruleOutput) != ruleMap[ruleInput].end())
-				throw Errors(7 + i, Errors::ErrorType::rulesError);
+				throw Errors(filename, 7 + i, Errors::ErrorType::rulesError);
 
 			// Discard rules that won't make a difference
 			if (std::string{ ruleInput } == ruleOutput) continue;
@@ -104,6 +111,69 @@ namespace Grammars {
 						maxRuleGenLen = ruleOutput.length();
 
 		}
+
+		// Delete all the rules with empty outputs and create new rules from the
+		// existing ones deleting the non-terminal symbol that outputs empty string
+		// Example:
+
+		// THIS IS A MESS (but it works (atleast for small inputs))
+		// IT NEEDS MANY IMPROVEMENTS
+		bool searchAgain = true;
+		while (searchAgain) {
+			searchAgain = false;
+			std::unordered_map<char, std::vector<std::string>> dummyRuleMap;
+			for (const auto& pairI : ruleMap) {
+				for (int i = 0; i < pairI.second.size(); ++i) {
+					if (!pairI.second[i].length()) {
+						searchAgain = true;
+						dummyRuleMap.clear();
+						dummyRuleMap[pairI.first].push_back(std::string{ pairI.first });
+						dummyRuleMap[pairI.first].push_back("");
+						{
+							std::vector<std::string> tempV = pairI.second;
+							tempV.erase(tempV.begin() + i);
+							ruleMap[pairI.first] = tempV;
+						}
+						for (const auto& pairJ : ruleMap) {
+							for (int j = 0; j < pairJ.second.size(); ++j)
+							{
+								int newOutputsSize = 0;
+								int lastRuleIndex = -1;
+								for (int k = 0; k < pairJ.second[j].length(); ++k)
+									if (pairJ.second[j][k] == pairI.first) {
+										if (!newOutputsSize)
+											newOutputsSize = 2;
+										else
+											newOutputsSize *= 2;
+										lastRuleIndex = k;
+									}
+								if (lastRuleIndex == -1) continue;
+								std::vector<std::string> newOutputs(newOutputsSize);
+								size_t vIndex = 0;
+								generate_words(pairJ.second[j], 0, dummyRuleMap, lastRuleIndex, newOutputs, vIndex);
+								std::vector<std::string> tempV = pairJ.second;
+								for (int k = 0; k < newOutputs.size(); ++k)
+									if (!newOutputs[k].empty() &&
+										std::find(tempV.begin(), tempV.end(), newOutputs[k]) == tempV.end())
+										tempV.push_back(newOutputs[k]);
+								ruleMap[pairJ.first] = tempV;
+							}
+						}
+					}
+				}
+			}
+		}
+
+#ifdef SHOW_RULES
+		std::cout << filename << '\n';
+		for (const auto& pair : ruleMap) {
+			std::cout << pair.first << ": ";
+			for (std::string output : pair.second)
+				std::cout << output << ' ';
+			std::cout << '\n';
+		}
+		std::cout << '\n';
+#endif // SHOW_RULES
 
 	} // of constructor ContextFreeGrammar
 
@@ -185,13 +255,16 @@ namespace Grammars {
 				// or if there is no possible way to find a solution throught it
 				for (int i = 0; i < children.size(); ++i)
 					if (prune(word, children[i], wordSet, termSymbols, nonTermSymbols, maxRuleGenLen)) {
+#ifdef SHOW_PRUNED
+						std::cout << children[i]->word << '\n';
+#endif // SHOW_PRUNED
 						delete children[i];
 						children[i] = nullptr;
 					}
 					else {
-#ifdef DEBUG
+#ifdef SHOW_GENERATED
 						std::cout << children[i]->word << '\n';
-#endif // DEBUG
+#endif // SHOW_GENERATED
 						wordSet.insert(children[i]->word);
 					}
 
@@ -218,7 +291,7 @@ namespace Grammars {
 		// If a solution was found print it
 		bool solutionFound = solutionNode;
 		if(solutionNode)
-			show_solution(solutionNode);
+			show_solution(solutionNode, nonTermSymbols);
 
 		clear_tree(frontierHead);
 		for (size_t i = 0; i < to_be_deleted_nodes.size(); ++i)

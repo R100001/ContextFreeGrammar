@@ -15,8 +15,6 @@
 
 #include "Macros.h"
 
-#include "Rule.h"
-
 //----------------------------------------------------------------
 
 namespace Grammars {
@@ -33,10 +31,10 @@ namespace Grammars {
 		TreeNode(TreeNode* p, std::string w, unsigned int d, unsigned int h)
 			:parent{ p }, word{ w }, depth{ d }, heuristic{ h } {}
 
-		TreeNode* parent;	// The parent node
-		std::string word;	// The word on the current node
-		unsigned int depth;
-		unsigned int heuristic;
+		TreeNode* parent;		// The parent node
+		std::string word;		// The word on the current node
+		unsigned int depth;		// The depth of the node in the tree
+		unsigned int heuristic;	// The heuristic score
 
 	}; // of struct TreeNode
 
@@ -72,6 +70,11 @@ namespace Grammars {
 		const std::unordered_set<char>& nonTerminalSymbols,
 		const size_t maxRuleGenLen);
 
+	// Generate new words using the provided rules
+	void generate_words(std::string word, int location,
+		std::unordered_map<char, std::vector<std::string>>& ruleMap,
+		int lastRuleIndex, std::vector<std::string>& words, size_t& wordsIndex);
+
 	// Generate children by applying the rules to theirs parent's word
 	void generate_children(TreeNode* node,
 		std::unordered_map<char, std::vector<std::string>> ruleMap,
@@ -82,7 +85,7 @@ namespace Grammars {
 	void clear_tree(FrontierNode* head);
 
 	// Print the solution to the screen
-	void show_solution(TreeNode* solutionNode);
+	void show_solution(TreeNode* solutionNode, const std::unordered_set<char>& nonTermSymbols);
 
 //----------------------------------------------------------------
 

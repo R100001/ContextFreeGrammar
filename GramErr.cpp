@@ -17,7 +17,8 @@ namespace Grammars {
 	//
 	// Outputs:
 	//
-	Errors::Errors(int line, ErrorType error) {
+	Errors::Errors(std::string infile, int line, ErrorType error) {
+		filename = infile;
 		eLine = line;
 		eType = error;
 	}
@@ -33,9 +34,10 @@ namespace Grammars {
 	std::string Errors::what() const {
 
 		if (eType == ErrorType::fileNotFound)
-			return "File not found\n";
+			return "File " + filename + " not found\n";
 
-		std::string msg{ "Error in line:" + std::to_string(eLine) + "\n" };
+		std::string msg{ "Error in file: " + filename + "\n" };
+		msg += "Line: " + std::to_string(eLine) + "\n";
 
 		if (eType == ErrorType::nTermSymbolsError)
 			msg += "Please use a positive integer";
