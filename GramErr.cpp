@@ -58,7 +58,9 @@ namespace Grammars {
 			msg += "Please use a positive integer";
 
 		if (eType == ErrorType::rulesError)
-			msg += "Rules should be unique and defined like this: S aSb (the space inbetween is necerrary)";
+			msg += "Rules should be unique and defined like this: S aSb (the space inbetween is necerrary)\n\
+					Additionaly the character of the input of the rule should be a non-terminal symbol\n\
+					and the characters of the output should be either a terminal or a non-terminal symbol";
 
 		return msg;
 
