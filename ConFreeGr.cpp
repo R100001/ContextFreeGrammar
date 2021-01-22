@@ -77,6 +77,8 @@ namespace Grammars {
 		for (int i = 0; i < nRules; ++i) {
 			
 			fin >> ruleInput;
+			if(!nonTermSymbols.contains(ruleInput))
+				throw Errors(filename, 7 + i, Errors::ErrorType::rulesError);
 			if (!isspace(fin.peek())) fin.setstate(std::fstream::badbit);
 			std::getline(fin, ruleOutput);
 
@@ -86,6 +88,10 @@ namespace Grammars {
 					noSpaces += ch;
 			ruleOutput = noSpaces;
 			if (ruleOutput == EMPTYSTRING) ruleOutput = "";
+
+			for(const char ch : ruleOutput)
+				if(!termSymbols.contains(ch) && !nonTermSymbols.contains(ch))
+					throw Errors(filename, 7 + i, Errors::ErrorType::rulesError);
 
 			if (fin.bad() || std::find(ruleMap[ruleInput].begin(), ruleMap[ruleInput].end(),
 								ruleOutput) != ruleMap[ruleInput].end())

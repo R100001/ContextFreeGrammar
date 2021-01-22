@@ -140,11 +140,9 @@ void delete_grammar(std::vector<Grammars::ContextFreeGrammar>& grammars) {
 		std::sort(toBeDeletedGrammars.begin(), toBeDeletedGrammars.end(), std::greater<int>());
 		for (int num : toBeDeletedGrammars)
 			grammars.erase(grammars.begin() + num);
-
-		std::cout << '\n';
-		return;
 	}
-	else return;
+
+	std::cout << '\n';
 }
 
 //------------------------------------------------------------------------

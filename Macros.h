@@ -5,11 +5,11 @@
 
 //----------------------------------------------------------------
 
+#define HEURISTIC
+
 //#define SHOW_RULES
 //#define SHOW_GENERATED
-#define SHOW_PRUNED
-
-#define HEURISTIC
+//#define SHOW_PRUNED
 
 #define SHOW_TIME
 //#define SHOW_DETAILS
